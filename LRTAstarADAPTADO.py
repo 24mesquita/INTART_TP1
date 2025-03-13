@@ -1,0 +1,156 @@
+import math
+import pandas as pd
+from queue import PriorityQueue
+
+class LrtAStarN:
+    def __init__(self, s_start, s_goal, N, heuristic_type):
+        self.s_start = s_start
+        self.s_goal = s_goal
+        self.heuristic_type = heuristic_type
+        self.N = N
+        self.grafo = self.ler_csv("Search_based_Planning/Search_2D/graph.csv")
+        self.h_table = {}
+        self.visited = []
+        self.path = []
+
+    def ler_csv(self, caminho):
+        dados = pd.read_csv(caminho)
+        grafo = {}
+        for _, linha in dados.iterrows():
+            origem = linha['Origin']
+            destino = linha['Destination']
+            distancia = linha['Distance_km']
+            combustivel = linha['Fuel_L']
+            tempo = linha['Time_min']
+
+            if origem not in grafo:
+                grafo[origem] = {}
+            grafo[origem][destino] = {'km': distancia, 'litros': combustivel, 'tempo': tempo}
+        return grafo
+
+    def init(self):
+        for no in self.grafo:
+            self.h_table[no] = self.h(no)
+
+    def h(self, s):
+        if self.heuristic_type == "manhattan":
+            return abs(hash(self.s_goal) - hash(s))
+        else:
+            return math.sqrt((hash(self.s_goal) - hash(s)) ** 2)  # Euclidean approximation
+
+    def cost(self, s_start, s_goal):
+        if s_start not in self.grafo or s_goal not in self.grafo[s_start]:
+            return float("inf")
+        data = self.grafo[s_start][s_goal]
+        return 0.5 * data['km'] + 0.3 * data['litros'] + 0.2 * data['tempo']
+
+    def get_neighbor(self, s):
+        return list(self.grafo[s].keys()) if s in self.grafo else []
+
+    def searching(self):
+        self.init()
+        s_start = self.s_start
+
+        while True:
+            result, CLOSED = self.AStar(s_start, self.N)
+            if result == "FOUND":
+                self.path = self.extract_path(s_start, CLOSED)
+                break
+
+            h_value = self.iteration(CLOSED)
+            for x in h_value:
+                self.h_table[x] = h_value[x]
+
+            s_start, path_k = self.extract_path_in_CLOSE(s_start, h_value)
+            self.path = path_k
+
+    def AStar(self, x_start, N):
+        OPEN = PriorityQueue()
+        OPEN.put((self.h(x_start), x_start))
+        CLOSED = []
+        g_table = {x_start: 0}
+        PARENT = {x_start: x_start}
+        count = 0
+
+        while not OPEN.empty():
+            count += 1
+            _, s = OPEN.get()
+            CLOSED.append(s)
+
+            if s == self.s_goal:
+                return "FOUND", PARENT
+
+            for s_n in self.get_neighbor(s):
+                new_cost = g_table[s] + self.cost(s, s_n)
+                if s_n not in g_table or new_cost < g_table[s_n]:
+                    g_table[s_n] = new_cost
+                    PARENT[s_n] = s
+                    OPEN.put((new_cost + self.h_table[s_n], s_n))
+
+            if count == N:
+                break
+
+        return OPEN, CLOSED
+
+    def extract_path_in_CLOSE(self, s_start, h_value):
+        path = [s_start]
+        s = s_start
+
+        while True:
+            h_list = {s_n: self.h_table[s_n] for s_n in self.get_neighbor(s) if s_n in self.h_table}
+            if not h_list:
+                break
+
+            s_key = min(h_list, key=h_list.get)
+            path.append(s_key)
+            s = s_key
+
+            if s_key not in h_value:
+                return s_key, path
+
+    def iteration(self, CLOSED):
+        h_value = {s: float("inf") for s in CLOSED}
+
+        while True:
+            h_value_rec = h_value.copy()
+            for s in CLOSED:
+                h_list = [self.cost(s, s_n) + (self.h_table[s_n] if s_n not in CLOSED else h_value[s_n]) for s_n in self.get_neighbor(s)]
+                if h_list:
+                    h_value[s] = min(h_list)
+            if h_value == h_value_rec:
+                return h_value
+
+    def extract_path(self, x_start, parent):
+        path_back = [self.s_goal]
+        x_current = self.s_goal
+
+        while x_current != x_start:
+            x_current = parent[x_current]
+            path_back.append(x_current)
+
+        return list(reversed(path_back))
+
+    def calcular_metricas(self, caminho):
+        total_km, total_litros, total_tempo = 0, 0, 0
+
+        for i in range(len(caminho) - 1):
+            origem, destino = caminho[i], caminho[i + 1]
+            if origem in self.grafo and destino in self.grafo[origem]:
+                data = self.grafo[origem][destino]
+                total_km += data['km']
+                total_litros += data['litros']
+                total_tempo += data['tempo']
+
+        return total_km, total_litros, total_tempo
+
+if __name__ == '__main__':
+    s_start = 'P'
+    s_goal = 'C'
+    lrta = LrtAStarN(s_start, s_goal, N=10, heuristic_type="euclidean")
+    lrta.searching()
+    print("Caminho encontrado:", lrta.path)
+
+    km, litros, tempo = lrta.calcular_metricas(lrta.path)
+    print(f"Total de km percorridos: {km}")
+    print(f"Total de litros gastos: {litros}")
+    print(f"Total de tempo gasto: {tempo} minutos")
