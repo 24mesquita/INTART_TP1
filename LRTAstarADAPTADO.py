@@ -8,7 +8,7 @@ class LrtAStarN:
         self.s_goal = s_goal
         self.heuristic_type = heuristic_type
         self.N = N
-        self.grafo = self.ler_csv("Search_based_Planning/Search_2D/graph.csv")
+        self.grafo = self.ler_csv("Search_based_Planning/Search_2D/cities_nodes_special.csv")
         self.h_table = {}
         self.visited = []
         self.path = []
@@ -17,15 +17,15 @@ class LrtAStarN:
         dados = pd.read_csv(caminho)
         grafo = {}
         for _, linha in dados.iterrows():
-            origem = linha['Origin']
-            destino = linha['Destination']
-            distancia = linha['Distance_km']
-            combustivel = linha['Fuel_L']
-            tempo = linha['Time_min']
+            origem = linha['origin_city']
+            destino = linha['destination_city']
+            distancia = linha['distance_km']
+            combustivel = linha['fuel']
+            portagens = linha['toll']
 
             if origem not in grafo:
                 grafo[origem] = {}
-            grafo[origem][destino] = {'km': distancia, 'litros': combustivel, 'tempo': tempo}
+            grafo[origem][destino] = {'km': distancia, 'litros': combustivel, 'portagens': portagens}
         return grafo
 
     def init(self):
@@ -42,7 +42,8 @@ class LrtAStarN:
         if s_start not in self.grafo or s_goal not in self.grafo[s_start]:
             return float("inf")
         data = self.grafo[s_start][s_goal]
-        return 0.5 * data['km'] + 0.3 * data['litros'] + 0.2 * data['tempo']
+        return 0.3 * data['km'] + 0.4 * data['litros'] + 0.3 * data['portagens']
+
 
     def get_neighbor(self, s):
         return list(self.grafo[s].keys()) if s in self.grafo else []
@@ -131,7 +132,7 @@ class LrtAStarN:
         return list(reversed(path_back))
 
     def calcular_metricas(self, caminho):
-        total_km, total_litros, total_tempo = 0, 0, 0
+        total_km, total_litros, total_portagens = 0, 0, 0
 
         for i in range(len(caminho) - 1):
             origem, destino = caminho[i], caminho[i + 1]
@@ -139,18 +140,18 @@ class LrtAStarN:
                 data = self.grafo[origem][destino]
                 total_km += data['km']
                 total_litros += data['litros']
-                total_tempo += data['tempo']
+                total_portagens += data['portagens']
 
-        return total_km, total_litros, total_tempo
+        return total_km, total_litros, total_portagens
 
 if __name__ == '__main__':
-    s_start = 'P'
-    s_goal = 'C'
+    s_start, s_goal = 'Berlin', 'Valencia'
+
     lrta = LrtAStarN(s_start, s_goal, N=10, heuristic_type="euclidean")
     lrta.searching()
     print("Caminho encontrado:", lrta.path)
 
-    km, litros, tempo = lrta.calcular_metricas(lrta.path)
+    km, litros, portagens = lrta.calcular_metricas(lrta.path)
     print(f"Total de km percorridos: {km}")
     print(f"Total de litros gastos: {litros}")
-    print(f"Total de tempo gasto: {tempo} minutos")
+    print(f"Total gasto em portagens: {portagens}")

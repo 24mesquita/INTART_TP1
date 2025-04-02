@@ -7,7 +7,7 @@ class AStarCSV:
         self.s_start = s_start
         self.s_goal = s_goal
         self.heuristic_type = heuristic_type
-        self.graph = self.load_csv("Search_based_Planning/Search_2D/graph.csv")
+        self.graph = self.load_csv("Search_based_Planning/Search_2D/cities_nodes_special.csv")
 
         self.OPEN = []
         self.CLOSED = set()
@@ -18,11 +18,11 @@ class AStarCSV:
         data = pd.read_csv(path)
         graph = {}
         for _, row in data.iterrows():
-            orig, dest = row['Origin'], row['Destination']
+            orig, dest = row['origin_city'], row['destination_city']
             graph.setdefault(orig, {})[dest] = {
-                'km': row['Distance_km'],
-                'litros': row['Fuel_L'],
-                'tempo': row['Time_min']
+                'km': row['distance_km'],
+                'litros': row['fuel'],
+                'portagens': row['toll']
             }
         return graph
 
@@ -32,7 +32,7 @@ class AStarCSV:
     def cost(self, s_start, s_goal):
         if s_start in self.graph and s_goal in self.graph[s_start]:
             edge = self.graph[s_start][s_goal]
-            return 0.5 * edge['km'] + 0.3 * edge['litros'] + 0.2 * edge['tempo']
+            return 0.3 * edge['km'] + 0.4 * edge['litros'] + 0.3 * edge['portagens']
         return float('inf')
 
     def searching(self, s_start, s_goal, heuristic_type='euclidean'):
@@ -74,23 +74,23 @@ class AStarCSV:
         return path[::-1]
 
     def calcular_metricas(self, path):
-        km, litros, tempo = 0, 0, 0
+        km, litros, portagens = 0, 0, 0
         for i in range(len(path) - 1):
             edge = self.graph[path[i]][path[i + 1]]
             km += edge['km']
             litros += edge['litros']
-            tempo += edge['tempo']
-        return km, litros, tempo
+            portagens += edge['portagens']
+        return km, litros, portagens
 
 
 if __name__ == '__main__':
-    s_start, s_goal = 'P', 'C'
+    s_start, s_goal = 'Berlin', 'Valencia'
     astar = AStarCSV(s_start, s_goal, heuristic_type="euclidean")
 
     path = astar.searching(s_start, s_goal)
     if path:
         print("Melhor caminho encontrado:", path)
-        km, litros, tempo = astar.calcular_metricas(path)
-        print(f"Total km: {km}, Total litros: {litros}, Tempo total: {tempo} min")
+        km, litros, portagens = astar.calcular_metricas(path)
+        print(f"Total km: {km}, Total litros: {litros}, Gasto em portagens: {portagens}")
     else:
         print("Caminho não encontrado.")
