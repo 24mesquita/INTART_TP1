@@ -6,7 +6,7 @@ class DStarCSV:
         self.s_start = s_start
         self.s_goal = s_goal
         self.heuristic_type = heuristic_type
-        self.graph = self.load_csv("Search_based_Planning/Search_2D/graph.csv")
+        self.graph = self.load_csv("cities_nodes_special.csv")
 
         self.g, self.rhs, self.U = {}, {}, {}
         self.km = 0
@@ -22,21 +22,21 @@ class DStarCSV:
         data = pd.read_csv(path)
         graph = {}
         for _, row in data.iterrows():
-            orig = row['Origin']
-            dest = row['Destination']
+            orig = row['origin_city']
+            dest = row['destination_city']
             if orig not in graph:
                 graph[orig] = {}
             graph[orig][dest] = {
-                'km': row['Distance_km'],
-                'litros': row['Fuel_L'],
-                'tempo': row['Time_min']
+                'toll': row['toll'],
+                'fuel': row['fuel'],
+                'distance_km': row['distance_km']
             }
         return graph
 
     def cost(self, a, b):
         if a in self.graph and b in self.graph[a]:
             edge = self.graph[a][b]
-            return 0.5 * edge['km'] + 0.3 * edge['litros'] + 0.2 * edge['tempo']
+            return 0.5 * edge['distance_km'] + 0.3 * edge['fuel'] + 0.2 * edge['toll']
         return float('inf')
 
     def calculate_key(self, s):
@@ -95,25 +95,25 @@ class DStarCSV:
         return path
 
     def calculate_metrics(self, path):
-        km = litros = tempo = 0
+        toll = fuel = distance_km = 0
         for i in range(len(path) - 1):
             edge = self.graph[path[i]][path[i + 1]]
-            km += edge['km']
-            litros += edge['litros']
-            tempo += edge['tempo']
-        return km, litros, tempo
+            toll += edge['toll']
+            fuel += edge['fuel']
+            distance_km += edge['distance_km']
+        return toll, fuel, distance_km
 
 if __name__ == '__main__':
-    s_start, s_goal = 'P', 'C'
+    s_start, s_goal = 'Berlin', 'Madrid'
     dstar_csv = DStarCSV(s_start, s_goal, heuristic_type="euclidean")
     dstar_csv.compute_path()
     path = dstar_csv.extract_path()
 
     if path:
-        print("Melhor caminho encontrado:", path)
-        km, litros, tempo = dstar_csv.calculate_metrics(path)
-        print(f"Distância total: {km} km")
-        print(f"Combustível total: {litros} L")
-        print(f"Tempo total: {tempo} min")
+        print("Best path found:", path)
+        toll, fuel, distance_km = dstar_csv.calculate_metrics(path)
+        print(f"Total toll: {toll}")
+        print(f"Total fuel: {fuel} L")
+        print(f"Total distance: {distance_km} km")
     else:
-        print("Caminho não encontrado.")
+        print("Path not found.")
