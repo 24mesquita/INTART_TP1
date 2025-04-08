@@ -1,18 +1,20 @@
 import pandas as pd
 import math
 import heapq
+import time
 
 class AStarCSV:
     def __init__(self, s_start, s_goal, heuristic_type='euclidean'):
         self.s_start = s_start
         self.s_goal = s_goal
         self.heuristic_type = heuristic_type
-        self.graph = self.load_csv("Search_based_Planning/Search_2D/cities_nodes_special.csv")
+        self.graph = self.load_csv("cities_nodes_special.csv")
 
         self.OPEN = []
         self.CLOSED = set()
         self.PARENT = {}
         self.g = {}
+        self.history = []  # To store the history of explored paths
 
     def load_csv(self, path):
         data = pd.read_csv(path)
@@ -42,14 +44,22 @@ class AStarCSV:
         heapq.heappush(self.OPEN, (self.heuristic(s_start), s_start))
         self.PARENT[s_start] = None
 
+        start_time = time.perf_counter()  # Start timing
+
         while self.OPEN:
             _, current = heapq.heappop(self.OPEN)
+            self.history.append(current)  # Record the current node being processed
+
             if current == self.s_goal:
+                end_time = time.perf_counter()  # End timing
+                self.execution_time = end_time - start_time
                 return self.extract_path()
 
             self.CLOSED.add(current)
 
             for neighbor in self.get_neighbors(current):
+                self.history.append(neighbor)  # Record all neighbors being evaluated
+
                 if neighbor in self.CLOSED:
                     continue
 
@@ -60,6 +70,8 @@ class AStarCSV:
                     self.PARENT[neighbor] = current
                     heapq.heappush(self.OPEN, (tentative_g + self.heuristic(neighbor), neighbor))
 
+        end_time = time.perf_counter()  # End timing
+        self.execution_time = end_time - start_time
         return []
 
     def get_neighbors(self, node):
@@ -94,3 +106,6 @@ if __name__ == '__main__':
         print(f"Total km: {km}, Total litros: {litros}, Gasto em portagens: {portagens}")
     else:
         print("Caminho não encontrado.")
+
+    print("Histórico de nós explorados:", astar.history)
+    print(f"Tempo de execução: {astar.execution_time:.4f} segundos")

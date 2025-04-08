@@ -1,5 +1,6 @@
 import math
 import pandas as pd
+import time
 from queue import PriorityQueue
 
 class LrtAStarN:
@@ -8,10 +9,12 @@ class LrtAStarN:
         self.s_goal = s_goal
         self.heuristic_type = heuristic_type
         self.N = N
-        self.grafo = self.ler_csv("Search_based_Planning/Search_2D/cities_nodes_special.csv")
+        self.grafo = self.ler_csv("cities_nodes_special.csv")
         self.h_table = {}
         self.visited = []
         self.path = []
+        self.history = []  # To store the history of explored nodes
+        self.execution_time = 0  # To store the execution time
 
     def ler_csv(self, caminho):
         dados = pd.read_csv(caminho)
@@ -44,13 +47,14 @@ class LrtAStarN:
         data = self.grafo[s_start][s_goal]
         return 0.3 * data['km'] + 0.4 * data['litros'] + 0.3 * data['portagens']
 
-
     def get_neighbor(self, s):
         return list(self.grafo[s].keys()) if s in self.grafo else []
 
     def searching(self):
         self.init()
         s_start = self.s_start
+
+        start_time = time.perf_counter()  # Start timing
 
         while True:
             result, CLOSED = self.AStar(s_start, self.N)
@@ -65,6 +69,9 @@ class LrtAStarN:
             s_start, path_k = self.extract_path_in_CLOSE(s_start, h_value)
             self.path = path_k
 
+        end_time = time.perf_counter()  # End timing
+        self.execution_time = end_time - start_time  # Calculate execution time
+
     def AStar(self, x_start, N):
         OPEN = PriorityQueue()
         OPEN.put((self.h(x_start), x_start))
@@ -77,11 +84,13 @@ class LrtAStarN:
             count += 1
             _, s = OPEN.get()
             CLOSED.append(s)
+            self.history.append(s)  # Record the current node being processed
 
             if s == self.s_goal:
                 return "FOUND", PARENT
 
             for s_n in self.get_neighbor(s):
+                self.history.append(s_n)  # Record all neighbors being evaluated
                 new_cost = g_table[s] + self.cost(s, s_n)
                 if s_n not in g_table or new_cost < g_table[s_n]:
                     g_table[s_n] = new_cost
@@ -155,3 +164,5 @@ if __name__ == '__main__':
     print(f"Total de km percorridos: {km}")
     print(f"Total de litros gastos: {litros}")
     print(f"Total gasto em portagens: {portagens}")
+    print("Histórico de nós explorados:", lrta.history)
+    print(f"Tempo de execução: {lrta.execution_time:.4f} segundos")

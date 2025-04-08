@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+import time
 
 class DStarCSV:
     def __init__(self, s_start, s_goal, heuristic_type="euclidean"):
@@ -10,6 +11,7 @@ class DStarCSV:
 
         self.g, self.rhs, self.U = {}, {}, {}
         self.km = 0
+        self.history = []  # To store the history of explored nodes
 
         for node in self.graph:
             self.g[node] = float("inf")
@@ -58,8 +60,12 @@ class DStarCSV:
             self.U[u] = self.calculate_key(u)
 
     def compute_path(self):
+        start_time = time.perf_counter()  # Start timing
+
         while self.U:
             u = min(self.U, key=self.U.get)
+            self.history.append(u)  # Record the current node being processed
+
             if self.U[u] >= self.calculate_key(self.s_start) and self.rhs[self.s_start] == self.g[self.s_start]:
                 break
             k_old = self.U[u]
@@ -76,6 +82,9 @@ class DStarCSV:
                 self.update_vertex(u)
                 for s in self.get_neighbors(u):
                     self.update_vertex(s)
+
+        end_time = time.perf_counter()  # End timing
+        self.execution_time = end_time - start_time  # Calculate execution time
 
     def extract_path(self):
         path = [self.s_start]
@@ -117,3 +126,6 @@ if __name__ == '__main__':
         print(f"Total distance: {distance_km} km")
     else:
         print("Path not found.")
+
+    print("History of explored nodes:", dstar_csv.history)
+    print(f"Execution time: {dstar_csv.execution_time:.4f} seconds")
