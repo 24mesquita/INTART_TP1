@@ -154,7 +154,7 @@ class LrtAStarN:
         return total_km, total_litros, total_portagens
 
 if __name__ == '__main__':
-    s_start, s_goal = 'Berlin', 'Valencia'
+    s_start, s_goal = 'Berlin', 'Madrid '
 
     lrta = LrtAStarN(s_start, s_goal, N=10, heuristic_type="euclidean")
     lrta.searching()
