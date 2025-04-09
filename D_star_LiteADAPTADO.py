@@ -113,7 +113,7 @@ class DStarCSV:
         return toll, fuel, distance_km
 
 if __name__ == '__main__':
-    s_start, s_goal = 'Berlin', 'Madrid'
+    s_start, s_goal = 'Berlin', 'Valencia'
     dstar_csv = DStarCSV(s_start, s_goal, heuristic_type="euclidean")
     dstar_csv.compute_path()
     path = dstar_csv.extract_path()
